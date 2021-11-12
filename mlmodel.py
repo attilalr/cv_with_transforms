@@ -6,7 +6,7 @@ class mlmodel:
         self.name = name
         self.scores = scores()
 
-    # all methods and attributes are passed to the model
+    # all methods and attributes are passed to the estimator object
     def __getattr__(self, name):
         return getattr(self.model, name)
 
