@@ -34,13 +34,24 @@ def mycross_val_score(estimator, X, y,
     '''
     Perform a cross-validation and return a score vector.
 
-    train_transform: transformation exclusive to the training set for each fold.
+    The transformations objectives are divided in two: the training set (for each fold) 
+        exclusive transformations and the fit_transform in the training and transform 
+        on the test set.
+
+    First one:
+    train_transform: transformation method exclusive to the training set for each fold.
         Intended to perform oversampling or synthetic-like data generation as SMOTE
         techniques. The train_transform is applied first. Uses fit_resample method.
-    transform: define a transformation which will be fit and transform
+    train_transform_call: customization of the call, the default is 'fit_resample'.
+
+    Second:
+    transform: define the transformation method which will be fit and transform
         to the training data for each fold. The test set is transformed using 
-        the training fit state. Example: standardization. Uses fit_transform and transform
-        methods.
+        the training fit state. Example: standardization. The default are 'fit_transform' 
+        and 'transform' methods. 
+    fit_transform_call: Customization in the fit_transform name call, the default is 
+        'fit_transform'.
+    transform_call: customization of the transform call, default is 'transform'.
     '''
 
     # train_transform call customization
