@@ -9,6 +9,9 @@ class scores(dict):
         '''
         Reset the dictionary which hold the scores.
         '''
+        for key in self.scores:
+            self.__dict__[key] = list()
+
         self.scores = {}
 
     def register(self, name, value) -> None:
