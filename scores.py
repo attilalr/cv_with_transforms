@@ -1,7 +1,7 @@
 from typing import Dict
 import numpy as np
 
-class scores:
+class scores(dict):
     def __init__(self):
         self.scores = {}
 
@@ -21,6 +21,14 @@ class scores:
             print (f'Starting metric {name}.')
             self.scores[name] = list()
             self.scores[name].append(value)
+
+        # to use scores[metric] in place of scores.scores[metric]
+        # it is slow...
+        for key in self.scores:
+            self.__dict__[key] = self.scores[key]
+
+    def __getitem__(self, key):
+        return self.__dict__[key]
 
     def mean(self) -> Dict:
         '''

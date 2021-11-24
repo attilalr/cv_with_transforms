@@ -1,3 +1,5 @@
+from os import lstat
+from typing import List
 from numpy.lib.arraysetops import isin
 from numpy.lib.function_base import copy
 from sklearn.base import is_classifier, is_regressor
@@ -8,11 +10,15 @@ from scores import scores
 
 import numpy as np
 
+from mlmodel import mlmodel
+
+import IPython
+
 def mycross_val_score(estimator, X, y, 
                     scoring=None,
                     cv=5,
                     train_transform=None, train_transform_call=None,
-                    transform=None, fit_transform_call=None, transform_call=None, 
+                    transform=None, fit_transform_call=None, transform_call=None,
                     ) -> np.array:
     '''
     Perform a cross-validation and return a score vector.
@@ -208,3 +214,96 @@ def mycross_val_predict(estimator, X, y,
             y_pred_all[test_index] = method_predict(X_test)
 
     return y_pred_all
+
+
+def my_nestedcross_val_predict(estimator_list: List, X, y, 
+                    cv=5,
+                    method='predict',
+                    score='accuracy',
+                    cv_outer=3,
+                    cv_inner=5,
+                    train_transform=None, train_transform_call=None,
+                    transform=None, fit_transform_call=None, transform_call=None, 
+                    ) -> List:
+    '''
+    Perform a cross-validation and return a score vector.
+
+    train_transform: transformation exclusive to the training set for each fold.
+        Intended to perform oversampling or synthetic-like data generation as SMOTE
+        techniques. The train_transform is applied first. Uses fit_resample method.
+    transform: define a transformation which will be fit and transform
+        to the training data for each fold. The test set is transformed using 
+        the training fit state. Example: standardization. Uses fit_transform and transform
+        methods.
+    '''
+    assert len(estimator_list) > 0
+    assert isinstance(estimator_list[0], mlmodel)
+
+    # check if is a regression or classification problem
+    if is_classifier(estimator_list[0]) and isinstance(cv, int):
+        kfold_outer = StratifiedKFold(n_splits=cv_outer, shuffle=False)
+    elif not is_classifier(estimator_list[0]) and isinstance(cv, int):
+        kfold_outer = KFold(n_splits=cv_outer, shuffle=False)
+    else:
+        # iterators and others not implemented
+        assert isinstance(cv, int)
+
+    lst_best_models = list()
+    for j, (train_index_outer, test_index_outer) in enumerate(kfold_outer.split(X, y)):
+
+        print (f'Outer Fold {j+1} de um total de {cv_outer}...')
+        
+        X_ = X[train_index_outer]
+        y_ = y[train_index_outer] 
+
+        X_holdout = X[test_index_outer]
+        y_holdout = y[test_index_outer]
+        
+        # check if is a regression or classification problem
+        if is_classifier(estimator_list[0]) and isinstance(cv, int):
+            kfold_inner = StratifiedKFold(n_splits=cv_inner, shuffle=False)
+        elif not is_classifier(estimator_list[0]) and isinstance(cv, int):
+            kfold_inner = KFold(n_splits=cv_inner, shuffle=False)
+        else:
+            # iterators and others not implemented
+            assert isinstance(cv, int)
+
+
+        # for loop to parallelize
+        for estimator in estimator_list:
+            #IPython.embed()
+            estimator.scores.register(score, np.mean(mycross_val_score(estimator, X_, y_, 
+                                                    scoring=score,
+                                                    cv=cv_inner,
+                                                    )[score]),
+            )
+            print (estimator)
+
+        lst_medias_scores = list()
+        for estimator in estimator_list:
+            lst_medias_scores.append(estimator.scores.mean()[score])
+        
+            
+            
+        name_best_model = estimator_list[np.argmax(lst_medias_scores)].name
+        id_best_model = np.argmax(lst_medias_scores)
+        lst_best_models.append(estimator_list[np.argmax(lst_medias_scores)]) # guardar os melhores numa lista
+
+        print (f'A melhor média de escore foi {np.max(lst_medias_scores):.3f} do modelo {name_best_model} no indice {id_best_model}')    
+
+        clf = estimator_list[np.argmax(lst_medias_scores)].model    
+        # 
+        
+        # 
+        clf.fit(X_, y_)
+        y_true = y_holdout
+        y_pred = clf.predict(X_holdout)
+
+        print(f'{score} do modelo {name_best_model} no holdout test: {get_scorer(score)._score_func(y_true, y_pred):.3f}')
+
+    print ()
+    print ('Melhores modelos:')
+    for estimator in lst_best_models:
+        print (f'{estimator.name}')
+
+    return lst_best_models
