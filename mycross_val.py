@@ -14,6 +14,43 @@ from mlmodel import mlmodel
 
 import IPython
 
+def get_transformations_calls(
+                            train_transform=None, # the object training set exclusive (ex. SMOTE)
+                            train_transform_call=None, # customization of the call
+                            transform=None, # the fit_transform object (ex. standardization)
+                            fit_transform_call=None, # customization of the fit_transform call (training set)
+                            transform_call=None, # customization of the transform call (applied to test set)
+                            ):
+
+    # train_transform call customization
+    # usual for imblearn is .fit_resample
+    if train_transform:
+        if isinstance(train_transform_call, str):
+            method_fit_resample = getattr(train_transform, train_transform_call)
+        elif train_transform:
+            method_fit_resample = getattr(train_transform, 'fit_resample')
+    else:
+        method_fit_resample = None
+
+    if transform:
+        # transformation for training/test set, customizing call
+        if isinstance(fit_transform_call, str):
+            method_fit_transform = getattr(transform, fit_transform_call)
+        elif transform:
+            method_fit_transform = getattr(transform, 'fit_transform')
+
+        if isinstance(transform_call, str):
+            method_transform = getattr(transform, transform_call)
+        elif transform:
+            method_transform = getattr(transform, 'transform')
+    else:
+        method_fit_transform = None
+        method_transform = None
+
+    # returns
+    return method_fit_resample, method_fit_transform, method_transform
+
+
 def get_kfold_object(estimator, cv):
 
     assert isinstance(cv, int)
@@ -54,23 +91,14 @@ def mycross_val_score(estimator, X, y,
     transform_call: customization of the transform call, default is 'transform'.
     '''
 
-    # train_transform call customization
-    # usual for imblearn is .fit_resample
-    if isinstance(train_transform_call, str):
-        method_fit_resample = getattr(train_transform, train_transform_call)
-    elif train_transform:
-        method_fit_resample = getattr(train_transform, 'fit_resample')
+    method_fit_resample, method_fit_transform, method_transform = get_transformations_calls(
+                            train_transform=train_transform, # the object training set exclusive (ex. SMOTE)
+                            train_transform_call=train_transform_call, # customization of the call
+                            transform=transform, # the fit_transform object (ex. standardization)
+                            fit_transform_call=fit_transform_call, # customization of the fit_transform call (training set)
+                            transform_call=transform_call, # customization of the transform call (applied to test set)
+                            )
 
-    # transformation for training/test set, customizing call
-    if isinstance(fit_transform_call, str):
-        method_fit_transform = getattr(transform, fit_transform_call)
-    elif transform:
-        method_fit_transform = getattr(transform, 'fit_transform')
-
-    if isinstance(transform_call, str):
-        method_transform = getattr(transform, transform_call)
-    elif transform:
-        method_transform = getattr(transform, 'transform')
 
     # original parameters of cross_val_score
     #groups=None, 
@@ -152,24 +180,13 @@ def mycross_val_predict(estimator, X, y,
 
     assert y.ndim == 1, 'The function support only single output.'
 
-    # train_transform call customization
-    # usual for imblearn is .fit_resample
-    if isinstance(train_transform_call, str):
-        method_fit_resample = getattr(train_transform, train_transform_call)
-    elif train_transform:
-        method_fit_resample = getattr(train_transform, 'fit_resample')
-
-    # transformation for training/test set, customizing call
-    if isinstance(fit_transform_call, str):
-        method_fit_transform = getattr(transform, fit_transform_call)
-    elif transform:
-        method_fit_transform = getattr(transform, 'fit_transform')
-
-    if isinstance(transform_call, str):
-        method_transform = getattr(transform, transform_call)
-    elif transform:
-        method_transform = getattr(transform, 'transform')
-
+    method_fit_resample, method_fit_transform, method_transform = get_transformations_calls(
+                            train_transform=train_transform, # the object training set exclusive (ex. SMOTE)
+                            train_transform_call=train_transform_call, # customization of the call
+                            transform=transform, # the fit_transform object (ex. standardization)
+                            fit_transform_call=fit_transform_call, # customization of the fit_transform call (training set)
+                            transform_call=transform_call, # customization of the transform call (applied to test set)
+                            )
 
     # original parameters of cross_val_score
     #groups=None, 
@@ -252,7 +269,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
     lst_best_models = list()
     for j, (train_index_outer, test_index_outer) in enumerate(kfold_outer.split(X, y)):
 
-        print (f'Outer Fold {j+1} de um total de {cv_outer}...')
+        print (f'Outer Fold {j+1} of a total {cv_outer}...')
         
         X_ = X[train_index_outer]
         y_ = y[train_index_outer] 
@@ -264,13 +281,17 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
 
         # for loop to parallelize
         for estimator in estimator_list:
-            #IPython.embed()
             estimator.scores.register(score, np.mean(mycross_val_score(estimator, X_, y_, 
                                                     scoring=score,
                                                     cv=cv_inner,
+                                                    train_transform=train_transform, 
+                                                    train_transform_call=train_transform_call,
+                                                    transform=transform, fit_transform_call=fit_transform_call, 
+                                                    transform_call=transform_call,
                                                     )[score]),
             )
             print (estimator)
+
 
         lst_medias_scores = list()
         for estimator in estimator_list:
@@ -282,7 +303,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
         id_best_model = np.argmax(lst_medias_scores)
         lst_best_models.append(estimator_list[np.argmax(lst_medias_scores)]) # guardar os melhores numa lista
 
-        print (f'A melhor média de escore foi {np.max(lst_medias_scores):.3f} do modelo {name_best_model} no indice {id_best_model}')    
+        print (f'Best {score} score was {np.max(lst_medias_scores):.3f} of {name_best_model}, idx {id_best_model}')    
 
         clf = estimator_list[np.argmax(lst_medias_scores)].model    
         # 
@@ -292,10 +313,10 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
         y_true = y_holdout
         y_pred = clf.predict(X_holdout)
 
-        print(f'{score} do modelo {name_best_model} no holdout test: {get_scorer(score)._score_func(y_true, y_pred):.3f}')
+        print(f'{score} of model {name_best_model} in holdout test set: {get_scorer(score)._score_func(y_true, y_pred):.3f}')
 
     print ()
-    print ('Melhores modelos:')
+    print (f'Best {cv_outer} model:')
     for estimator in lst_best_models:
         print (f'{estimator.name}')
 
