@@ -14,6 +14,17 @@ from mlmodel import mlmodel
 
 import IPython
 
+def get_kfold_object(estimator, cv):
+
+    assert isinstance(cv, int)
+
+    if is_classifier(estimator) and isinstance(cv, int):
+        kfold = StratifiedKFold(n_splits=cv, shuffle=False)
+    elif not is_classifier(estimator) and isinstance(cv, int):
+        kfold = KFold(n_splits=cv, shuffle=False)
+
+    return kfold
+
 def mycross_val_score(estimator, X, y, 
                     scoring=None,
                     cv=5,
@@ -60,13 +71,7 @@ def mycross_val_score(estimator, X, y,
     #pre_dispatch='2*n_jobs', 
     #error_score=nan,
     
-    if is_classifier(estimator) and isinstance(cv, int):
-        kfold = StratifiedKFold(n_splits=cv, shuffle=False)
-    elif not is_classifier(estimator) and isinstance(cv, int):
-        kfold = KFold(n_splits=cv, shuffle=False)
-    else:
-        # iterators and others not implemented
-        assert isinstance(cv, int)
+    kfold = get_kfold_object(estimator, cv)
 
     ## scorers
     # scoring - names
@@ -165,15 +170,7 @@ def mycross_val_predict(estimator, X, y,
     #pre_dispatch='2*n_jobs', 
     #error_score=nan,
     
-    if is_classifier(estimator) and isinstance(cv, int):
-        kfold = StratifiedKFold(n_splits=cv, shuffle=False)
-    elif not is_classifier(estimator) and isinstance(cv, int):
-        kfold = KFold(n_splits=cv, shuffle=False)
-    else:
-        # iterators and others not implemented
-        assert isinstance(cv, int)
-
-    
+    kfold = get_kfold_object(estimator, cv)
     
     # set method to predict and initialize the prediction vector
     if method == 'predict_proba':
@@ -239,14 +236,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
     assert len(estimator_list) > 0
     assert isinstance(estimator_list[0], mlmodel)
 
-    # check if is a regression or classification problem
-    if is_classifier(estimator_list[0]) and isinstance(cv, int):
-        kfold_outer = StratifiedKFold(n_splits=cv_outer, shuffle=False)
-    elif not is_classifier(estimator_list[0]) and isinstance(cv, int):
-        kfold_outer = KFold(n_splits=cv_outer, shuffle=False)
-    else:
-        # iterators and others not implemented
-        assert isinstance(cv, int)
+    kfold_outer = get_kfold_object(estimator_list[0], cv_outer)
 
     lst_best_models = list()
     for j, (train_index_outer, test_index_outer) in enumerate(kfold_outer.split(X, y)):
@@ -259,15 +249,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
         X_holdout = X[test_index_outer]
         y_holdout = y[test_index_outer]
         
-        # check if is a regression or classification problem
-        if is_classifier(estimator_list[0]) and isinstance(cv, int):
-            kfold_inner = StratifiedKFold(n_splits=cv_inner, shuffle=False)
-        elif not is_classifier(estimator_list[0]) and isinstance(cv, int):
-            kfold_inner = KFold(n_splits=cv_inner, shuffle=False)
-        else:
-            # iterators and others not implemented
-            assert isinstance(cv, int)
-
+        kfold_inner = get_kfold_object(estimator_list[0], cv_inner)
 
         # for loop to parallelize
         for estimator in estimator_list:
