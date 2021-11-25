@@ -2,17 +2,23 @@ from os import lstat
 from typing import List
 from numpy.lib.arraysetops import isin
 from numpy.lib.function_base import copy
-from sklearn.base import is_classifier, is_regressor
+
+import numpy as np
+from mlmodel import mlmodel, mlclone
+
+from sklearn.base import is_classifier, is_regressor, clone
+from sklearn.utils.fixes import delayed
+
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import KFold
 from sklearn.metrics import get_scorer
 from scores import scores
 
-import numpy as np
+from joblib import Parallel, logger
+from joblib import parallel_backend
 
-from mlmodel import mlmodel
-
-import IPython
+# check if obj is pickable
+import dill
 
 def get_transformations_calls(
                             train_transform=None, # the object training set exclusive (ex. SMOTE)
@@ -247,6 +253,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
                     score='accuracy',
                     cv_outer=3,
                     cv_inner=5,
+                    n_jobs=-1,
                     train_transform=None, train_transform_call=None,
                     transform=None, fit_transform_call=None, transform_call=None, 
                     ) -> List:
@@ -279,7 +286,8 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
         
         kfold_inner = get_kfold_object(estimator_list[0], cv_inner)
 
-        # for loop to parallelize
+        '''
+        # old serial for loop 
         for estimator in estimator_list:
             estimator.scores.register(score, np.mean(mycross_val_score(estimator, X_, y_, 
                                                     scoring=score,
@@ -289,13 +297,39 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
                                                     transform=transform, fit_transform_call=fit_transform_call, 
                                                     transform_call=transform_call,
                                                     )[score]),
-            )
+                                    )
             print (estimator)
+        '''
+
+        verbose = 2
+        pre_dispatch = '2*n_jobs'
+
+        with parallel_backend('loky'):
+            parallel = Parallel(n_jobs=n_jobs, verbose=verbose, pre_dispatch=pre_dispatch)
+
+            results = parallel(
+                delayed(mycross_val_score)(
+                    mlclone(estimator),
+                    X_,
+                    y_,
+                    scoring=score,
+                    cv=cv_inner,
+                    train_transform=train_transform, 
+                    train_transform_call=train_transform_call,
+                    transform=transform, fit_transform_call=fit_transform_call, 
+                    transform_call=transform_call,
+                )
+                for estimator in estimator_list
+            )
+
+        #for estimator, result in zip(estimator_list, results):
+        #    estimator.scores.register(score, np.mean(result[score]))
+
 
 
         lst_medias_scores = list()
-        for estimator in estimator_list:
-            lst_medias_scores.append(estimator.scores.mean()[score])
+        for estimator, result in zip(estimator_list, results):
+            lst_medias_scores.append(np.mean(result[score]))
         
             
             

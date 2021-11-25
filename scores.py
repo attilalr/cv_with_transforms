@@ -21,7 +21,7 @@ class scores(dict):
         if name in self.scores:
             self.scores[name].append(value)
         else:
-            print (f'Starting metric {name}.')
+            #print (f'Starting metric {name}.')
             self.scores[name] = list()
             self.scores[name].append(value)
 

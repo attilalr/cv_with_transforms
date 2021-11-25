@@ -93,12 +93,13 @@ for i in range(10):
             f'Random Forest Classifier-{i}',
             ))
 
-my_nestedcross_val_predict(est_list, X, y, 
+list_best_models = my_nestedcross_val_predict(est_list, X, y, 
                     cv=5,
                     method='predict',
                     score='accuracy',
                     cv_outer=3,
                     cv_inner=5,
+                    n_jobs=2,
                     train_transform=None, train_transform_call=None,
                     transform=None, fit_transform_call=None, transform_call=None, 
                     )
