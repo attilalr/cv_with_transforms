@@ -7,18 +7,17 @@ import numpy as np
 from mlmodel import mlmodel, mlclone
 
 from sklearn.base import is_classifier, is_regressor, clone
-from sklearn.utils.fixes import delayed
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import KFold
 from sklearn.metrics import get_scorer
+from sklearn.model_selection import check_cv
+
 from scores import scores
 
 from joblib import Parallel, logger
 from joblib import parallel_backend
-
-# check if obj is pickable
-import dill
+from sklearn.utils.fixes import delayed
 
 def get_transformations_calls(
                             train_transform=None, # the object training set exclusive (ex. SMOTE)
@@ -56,17 +55,6 @@ def get_transformations_calls(
     # returns
     return method_fit_resample, method_fit_transform, method_transform
 
-
-def get_kfold_object(estimator, cv):
-
-    assert isinstance(cv, int)
-
-    if is_classifier(estimator) and isinstance(cv, int):
-        kfold = StratifiedKFold(n_splits=cv, shuffle=False)
-    elif not is_classifier(estimator) and isinstance(cv, int):
-        kfold = KFold(n_splits=cv, shuffle=False)
-
-    return kfold
 
 def mycross_val_score(estimator, X, y, 
                     scoring=None,
@@ -116,7 +104,7 @@ def mycross_val_score(estimator, X, y,
     #pre_dispatch='2*n_jobs', 
     #error_score=nan,
     
-    kfold = get_kfold_object(estimator, cv)
+    kfold = check_cv(cv=cv, y=y, classifier=is_classifier(estimator))
 
     ## scorers
     # scoring - names
@@ -204,8 +192,8 @@ def mycross_val_predict(estimator, X, y,
     #pre_dispatch='2*n_jobs', 
     #error_score=nan,
     
-    kfold = get_kfold_object(estimator, cv)
-    
+    kfold = check_cv(cv=cv, y=y, classifier=is_classifier(estimator))
+
     # set method to predict and initialize the prediction vector
     if method == 'predict_proba':
         y_pred_all = np.empty((y.size, np.unique(y).size))
@@ -271,7 +259,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
     assert len(estimator_list) > 0
     assert isinstance(estimator_list[0], mlmodel)
 
-    kfold_outer = get_kfold_object(estimator_list[0], cv_outer)
+    kfold_outer = check_cv(cv=cv_outer, y=y, classifier=is_classifier(estimator_list[0]))
 
     lst_best_models = list()
     for j, (train_index_outer, test_index_outer) in enumerate(kfold_outer.split(X, y)):
@@ -284,7 +272,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
         X_holdout = X[test_index_outer]
         y_holdout = y[test_index_outer]
         
-        kfold_inner = get_kfold_object(estimator_list[0], cv_inner)
+        kfold_inner = check_cv(cv=cv_inner, y=y, classifier=is_classifier(estimator_list[0]))
 
         '''
         # old serial for loop 
