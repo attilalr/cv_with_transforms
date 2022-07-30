@@ -235,7 +235,7 @@ def mycross_val_predict(estimator, X, y,
     return y_pred_all
 
 
-def my_nestedcross_val_predict(estimator_list: List, X, y, 
+def my_nestedcross_val(estimator_list: List, X, y, 
                     cv=5,
                     method='predict',
                     score='accuracy',
@@ -246,7 +246,7 @@ def my_nestedcross_val_predict(estimator_list: List, X, y,
                     transform=None, fit_transform_call=None, transform_call=None, 
                     ) -> List:
     '''
-    Perform a cross-validation and return a score vector.
+    Perform a cross-validation and return a cv-outer best models list.
 
     train_transform: transformation exclusive to the training set for each fold.
         Intended to perform oversampling or synthetic-like data generation as SMOTE
