@@ -338,7 +338,7 @@ def my_nestedcross_val(estimator_list: List, X, y,
         print(f'{score} of model {name_best_model} in holdout test set: {get_scorer(score)._score_func(y_true, y_pred):.3f}')
 
     print ()
-    print (f'Best {cv_outer} model:')
+    print (f'Best {cv_outer} models:')
     for estimator in lst_best_models:
         print (f'{estimator.name}')
 
