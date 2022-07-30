@@ -8,7 +8,7 @@ from imblearn.over_sampling import SMOTE
 
 # local modules
 from mlmodel import mlmodel
-from mycross_val import mycross_val_score, mycross_val_predict, my_nestedcross_val_predict
+from mycross_val import mycross_val_score, mycross_val_predict, my_nestedcross_val
 
 
 X, y = make_classification(n_samples=200, n_features=4,
@@ -93,7 +93,7 @@ for i in range(10):
             f'Random Forest Classifier-{i}',
             ))
 
-list_best_models = my_nestedcross_val_predict(est_list, X, y, 
+list_best_models = my_nestedcross_val(est_list, X, y, 
                     cv=5,
                     method='predict',
                     score='accuracy',
