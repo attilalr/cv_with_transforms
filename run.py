@@ -113,12 +113,19 @@ print('#\n')
 
 # Test nested cross validation
 print ("### Test nested cross Validation")
+
+# we need to put any number of mlmodels in it
+# mlmodels are the usual models from sklearn, wrapped in a mlmodel class
 est_list = list()
 for i in range(10):
-    est_list.append(mlmodel(RandomForestClassifier(max_depth=i+1),
-            f'Random Forest Classifier-maxdepth-{i+1}',
-            ))
+    est_list.append(
+                    mlmodel(                                            # to create a mlmodel we need
+                            RandomForestClassifier(max_depth=i+1),      # the sklearn model
+                            f'Random Forest Classifier-maxdepth-{i+1}', # and a name
+                            ), 
+                    )
 
+# execute the nested cv
 list_best_models = my_nestedcross_val(est_list, X, y, 
                     cv=5,
                     method='predict',
