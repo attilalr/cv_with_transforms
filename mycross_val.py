@@ -10,7 +10,7 @@ from sklearn.base import is_classifier, is_regressor, clone
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import KFold
-from sklearn.metrics import get_scorer
+from sklearn.metrics import get_scorer, check_scoring
 from sklearn.model_selection import check_cv
 
 from scores import scores
@@ -58,6 +58,8 @@ def get_transformations_calls(
 
 def mycross_val_score(estimator, X, y, 
                     scoring=None,
+                    predict_method=None,
+                    column_predict_proba=None,
                     cv=5,
                     train_transform=None, train_transform_call=None,
                     transform=None, fit_transform_call=None, transform_call=None,
@@ -83,6 +85,12 @@ def mycross_val_score(estimator, X, y,
     fit_transform_call: Customization in the fit_transform name call, the default is 
         'fit_transform'.
     transform_call: customization of the transform call, default is 'transform'.
+    
+    Scoring and predict_method must match.
+    It means if you wanna use auc score you must provide the predict_method='pred_proba'.
+    
+    column_predict_proba:
+        If you are using
     '''
 
     method_fit_resample, method_fit_transform, method_transform = get_transformations_calls(
@@ -104,22 +112,46 @@ def mycross_val_score(estimator, X, y,
     #pre_dispatch='2*n_jobs', 
     #error_score=nan,
     
-    kfold = check_cv(cv=cv, y=y, classifier=is_classifier(estimator))
+    #kfold = check_cv(cv=cv, y=y, classifier=is_classifier(estimator))
+    kfold = cv
+
+    '''
+    if callable(scoring):
+        scorers = scoring
+    elif scoring is None or isinstance(scoring, str):
+        scorers = check_scoring(estimator, scoring)
+    #else:
+    #    scorers = _check_multimetric_scoring(estimator, scoring)
+    '''
 
     ## scorers
     # scoring - names
     # scorer_list - functions
-    scorer_list = list()
-    if scoring == None: # default parameter
-        scoring = 'accuracy'
-        scorer_list.append(get_scorer(scoring)._score_func)
-        scoring = [scoring] # put in a list to iterate after
+    if callable(scoring):
+        scorer = scoring
+        score_name = str(scoring)
+    elif scoring == None: # default parameter
+        scorer = check_scoring(estimator.model, None) # the default estimator score, as in cros_val_score 
+        score_name = 'None'
     elif isinstance(scoring, str): # just one string for a metric
-        scorer_list.append(get_scorer(scoring)._score_func)
-        scoring = [scoring] # put in a list to iterate after
-    elif isinstance(scoring, list): # if we have more than one score
-        for score_name in scoring:
-            scorer_list.append(get_scorer(score_name)._score_func)
+        scorer = get_scorer(scoring)
+        score_name = scoring
+    else:
+        raise ValueError(f'scoring parameter unrecognized: {scoring}')
+
+
+
+    # deal with the predict method
+    if predict_method:
+        estimator_predict = getattr(estimator, predict_method)
+    else:
+        estimator_predict = getattr(estimator, 'predict')
+        print ('Warning: predict_method not set. Set to \'predict\'.')
+        
+    # if predict_method is predict_proba lets use by default the column id 1
+    if predict_method == 'predict_proba' and column_predict_proba == None:
+        column_predict_proba = 1
+
 
     scores_obj = scores()
     #
@@ -147,97 +179,19 @@ def mycross_val_score(estimator, X, y,
 
         estimator.fit(X_train, y_train)
         y_true = y_test
-        y_pred = estimator.predict(X_test)
-
-        for score_name, scorer in zip(scoring, scorer_list):
-            scores_obj.register(score_name, scorer(y_true, y_pred))
-
-    return scores_obj
-
-def mycross_val_predict(estimator, X, y, 
-                    cv=5,
-                    method='predict',
-                    train_transform=None, train_transform_call=None,
-                    transform=None, fit_transform_call=None, transform_call=None, 
-                    ) -> np.array:
-    '''
-    Perform a cross-validation and return a score vector.
-
-    train_transform: transformation exclusive to the training set for each fold.
-        Intended to perform oversampling or synthetic-like data generation as SMOTE
-        techniques. The train_transform is applied first. Uses fit_resample method.
-    transform: define a transformation which will be fit and transform
-        to the training data for each fold. The test set is transformed using 
-        the training fit state. Example: standardization. Uses fit_transform and transform
-        methods.
-    '''
-
-    assert y.ndim == 1, 'The function support only single output.'
-
-    method_fit_resample, method_fit_transform, method_transform = get_transformations_calls(
-                            train_transform=train_transform, # the object training set exclusive (ex. SMOTE)
-                            train_transform_call=train_transform_call, # customization of the call
-                            transform=transform, # the fit_transform object (ex. standardization)
-                            fit_transform_call=fit_transform_call, # customization of the fit_transform call (training set)
-                            transform_call=transform_call, # customization of the transform call (applied to test set)
-                            )
-
-    # original parameters of cross_val_score
-    #groups=None, 
-    #scoring=None, 
-    #cv=None, 
-    #n_jobs=None, 
-    #verbose=0, 
-    #fit_params=None, 
-    #pre_dispatch='2*n_jobs', 
-    #error_score=nan,
-    
-    kfold = check_cv(cv=cv, y=y, classifier=is_classifier(estimator))
-
-    # set method to predict and initialize the prediction vector
-    if method == 'predict_proba':
-        y_pred_all = np.empty((y.size, np.unique(y).size))
-    elif method == 'predict':
-        y_pred_all = np.empty_like(y)
-
-    assert method == 'predict_proba' or method == 'predict', 'Supported methods'
-    method_predict = getattr(estimator, method)
-
-
-
-    for train_index, test_index in kfold.split(X, y):
-
-        X_train = X[train_index].copy()
-        y_train = y[train_index] 
-
-        X_test = X[test_index].copy()
-        y_test = y[test_index]
-
-        if transform:
-            # fit/apply the transformation in training set
-            # apply to the test set
-            #X_train = transform.fit_transform(X_train)
-            #X_test = transform.transform(X_test)
-            X_train = method_fit_transform(X_train)
-            X_test = method_transform(X_test)
+        #y_pred = estimator_predict(X_test)
         
-        if train_transform:
-            # smote-like techniques only applied to the training set.
-            #X_train = train_transform.fit_resample(X_train, y_train)
-            X_train, y_train = method_fit_resample(X_train, y_train)
+        if column_predict_proba:
+            y_pred = y_pred[:, column_predict_proba]
 
-        estimator.fit(X_train, y_train)
-        if method == 'predict_proba':
-            y_pred_all[test_index, :] = method_predict(X_test)
-        elif method == 'predict':
-            y_pred_all[test_index] = method_predict(X_test)
+        scores_obj.register(score_name, scorer(estimator.model, X_test, y_true))
 
-    return y_pred_all
+    return np.array(scores_obj[score_name])
+
 
 
 def my_nestedcross_val(estimator_list: List, X, y, 
                     cv=5,
-                    method='predict',
                     score='accuracy',
                     cv_outer=3,
                     cv_inner=5,
@@ -257,7 +211,8 @@ def my_nestedcross_val(estimator_list: List, X, y,
         methods.
     '''
     assert len(estimator_list) > 0
-    assert isinstance(estimator_list[0], mlmodel)
+    for estimator_ in estimator_list:
+      assert isinstance(estimator_, mlmodel)
 
     kfold_outer = check_cv(cv=cv_outer, y=y, classifier=is_classifier(estimator_list[0]))
 
