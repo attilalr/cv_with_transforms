@@ -25,6 +25,7 @@ random_seed = 1
 
 # using the extended mlmodel class
 # the methods are passed to the estimator obj but is acessible from clf.model
+# check if the timming performance is the same as sklearn cross_val_score
 
 print ('### Checking mlmodel class')
 clf = mlmodel(RandomForestClassifier(random_state=random_seed),
@@ -34,20 +35,15 @@ print (clf)
 print ('fit model with clf.fit')
 clf.fit(X, y)
 
-
-
-# check if the timming performance is the same as sklearn cross_val_score
-
 # create same cv for both
 cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
 
-scoring = 'accuracy'
 
 print ('### Checking computation time when running mycross_val_score against sklearn cross_val_score')
 t = time.perf_counter()
 scores_output1 = cross_val_score(clf.model, X, y, 
                       cv=cv, 
-                      scoring=scoring,
+                      scoring='accuracy',
                       n_jobs=1)
 print (f'cross_val_score: {scores_output1}')                      
 print (f'Time of cross_val_score: {time.perf_counter()-t:.2f} s.')
@@ -66,7 +62,7 @@ print ('mycross_val_score...')
 t = time.perf_counter()
 scores_output2 = mycross_val_score(clf, X, y, 
                                   cv=cv, 
-                                  scoring=scoring, 
+                                  scoring='accuracy', 
                                   #predict_method='predict',
                                   )
 print (f'mycross_val_score: {scores_output2}')
@@ -74,8 +70,43 @@ print (f'Time of mycross_val_score: {time.perf_counter()-t:.2f} s.')
 print ('#\n')
 #
 
-sys.exit(0)
 
+
+
+
+#
+print ('Lets check another scoring.')
+
+print ('cross_val_score...')
+t = time.perf_counter()
+clf = mlmodel(RandomForestClassifier(random_state=random_seed),
+            'Random Forest Classifier - A',
+            )
+clf.fit(X, y)
+cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
+scores_output1 = cross_val_score(clf.model, X, y, 
+                      cv=cv, 
+                      scoring='roc_auc', 
+                      n_jobs=1)
+print (f'cross_val_score: {scores_output1}')                      
+print (f'Time of cross_val_score: {time.perf_counter()-t:.2f} s.')
+
+
+print ('mycross_val_score...')
+t = time.perf_counter()
+clf = mlmodel(RandomForestClassifier(random_state=random_seed),
+            'Random Forest Classifier - A',
+            )
+clf.fit(X, y)
+cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
+scores_output2 = mycross_val_score(clf, X, y, 
+                                  cv=cv, 
+                                  scoring='roc_auc', 
+                                  predict_method='predict_proba',
+                                  )
+print (f'mycross_val_score: {scores_output2}')
+print (f'Time of mycross_val_score: {time.perf_counter()-t:.2f} s.')
+print ('#\n')
 
 
 
@@ -165,19 +196,12 @@ X, y = make_regression(n_samples = 100,
 # the methods are passed to the estimator obj but is acessible from clf.model
 
 print ('### Checking mlmodel class')
-regr = mlmodel(RandomForestRegressor(),
+regr = mlmodel(RandomForestRegressor(random_state=random_seed),
             'Random Forest Regressor - A',
             )
 print (regr)
 print ('fit model with clf.fit')
 regr.fit(X, y)
-
-# check if it is working
-print ('Features importantes:')
-print (regr.feature_importances_)
-print (regr)
-print ('#\n')
-
 
 
 
@@ -186,10 +210,21 @@ print ('#\n')
 print ('### Checking computation time when running mycross_val_score against sklearn cross_val_score')
 t = time.perf_counter()
 print ('cross_val_score:')
-print(cross_val_score(regr.model, X, y, cv=5, n_jobs=1))
+cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
+scores_output = cross_val_score(regr.model, X, y, cv=5, n_jobs=1)
+print (f'cross_val_score: {scores_output}')
 print (f'Time of cross_val_score: {time.perf_counter()-t:.2f} s.')
 
+
+# mycross_val_score
+regr = mlmodel(RandomForestRegressor(random_state=random_seed),
+            'Random Forest Regressor - B',
+            )
+print (regr)
+print ('fit model with clf.fit')
+regr.fit(X, y)
 t = time.perf_counter()
+cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
 scores_output = mycross_val_score(regr, X, y, cv=5)
 print (f'mycross_val_score: {scores_output}')
 print (f'Time of mycross_val_score: {time.perf_counter()-t:.2f} s.')

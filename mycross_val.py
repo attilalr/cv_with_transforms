@@ -112,8 +112,7 @@ def mycross_val_score(estimator, X, y,
     #pre_dispatch='2*n_jobs', 
     #error_score=nan,
     
-    #kfold = check_cv(cv=cv, y=y, classifier=is_classifier(estimator))
-    kfold = cv
+    kfold = check_cv(cv=cv, y=y, classifier=is_classifier(estimator))
 
     '''
     if callable(scoring):
@@ -181,8 +180,8 @@ def mycross_val_score(estimator, X, y,
         y_true = y_test
         #y_pred = estimator_predict(X_test)
         
-        if column_predict_proba:
-            y_pred = y_pred[:, column_predict_proba]
+        #if column_predict_proba:
+        #    y_pred = y_pred[:, column_predict_proba]
 
         scores_obj.register(score_name, scorer(estimator.model, X_test, y_true))
 
