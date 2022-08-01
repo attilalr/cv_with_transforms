@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 
 # local modules
 from mlmodel import mlmodel
-from mycross_val import mycross_val_score, mycross_val_predict, my_nestedcross_val
+from mycross_val import mycross_val_score, my_nestedcross_val
 
 
 ### Classification case
@@ -20,35 +20,26 @@ X, y = make_classification(n_samples=80, n_features=8,
                            shift=None, scale=None,
                            )
 
-
+random_seed = 1
 
 
 # using the extended mlmodel class
 # the methods are passed to the estimator obj but is acessible from clf.model
 
 print ('### Checking mlmodel class')
-clf = mlmodel(RandomForestClassifier(),
+clf = mlmodel(RandomForestClassifier(random_state=random_seed),
             'Random Forest Classifier - A',
             )
 print (clf)
 print ('fit model with clf.fit')
 clf.fit(X, y)
 
-# check if it is working
-print ('clf.feature_importances')
-print (clf.feature_importances_)
-print (clf)
-print ('#\n')
-
-
-
-
 
 
 # check if the timming performance is the same as sklearn cross_val_score
 
 # create same cv for both
-cv = KFold(n_splits=5, shuffle=False, random_state=None)
+cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
 
 scoring = 'accuracy'
 
@@ -61,7 +52,15 @@ scores_output1 = cross_val_score(clf.model, X, y,
 print (f'cross_val_score: {scores_output1}')                      
 print (f'Time of cross_val_score: {time.perf_counter()-t:.2f} s.')
 
-cv = KFold(n_splits=5, shuffle=False, random_state=None)
+
+# Restarting cv and RFC
+cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
+print ('### Checking mlmodel class')
+clf = mlmodel(RandomForestClassifier(random_state=random_seed),
+            'Random Forest Classifier - B',
+            )
+clf.fit(X, y)
+
 
 print ('mycross_val_score...')
 t = time.perf_counter()
