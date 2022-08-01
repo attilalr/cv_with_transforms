@@ -2,10 +2,13 @@ from scores import scores
 from sklearn.base import clone
 
 class mlmodel:
-    def __init__(self, model, name):
+    def __init__(self, model, name, *args, **kwargs):
         self.model = model
         self.name = name
         self.scores = scores()
+        
+        self.args = args
+        self.kwargs = kwargs
 
     # all methods and attributes are passed to the estimator object
     def __getattr__(self, attr: str):
