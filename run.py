@@ -63,7 +63,6 @@ t = time.perf_counter()
 scores_output2 = mycross_val_score(clf, X, y, 
                                   cv=cv, 
                                   scoring='accuracy', 
-                                  #predict_method='predict',
                                   )
 print (f'mycross_val_score: {scores_output2}')
 print (f'Time of mycross_val_score: {time.perf_counter()-t:.2f} s.')
@@ -102,7 +101,6 @@ cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
 scores_output2 = mycross_val_score(clf, X, y, 
                                   cv=cv, 
                                   scoring='roc_auc', 
-                                  predict_method='predict_proba',
                                   )
 print (f'mycross_val_score: {scores_output2}')
 print (f'Time of mycross_val_score: {time.perf_counter()-t:.2f} s.')
@@ -121,7 +119,6 @@ scaler = StandardScaler()
 t = time.perf_counter()
 scores_output = mycross_val_score(clf, X, y, 
                                 scoring='accuracy',
-                                predict_method='predict',
                                 cv=5, 
                                 transform=scaler,
                                 )
@@ -160,7 +157,7 @@ for i in range(10):
                             ), 
                     )
 
-'''
+
 # execute the nested cv
 list_best_models = my_nestedcross_val(est_list, X, y, 
                     cv=5,
@@ -171,7 +168,6 @@ list_best_models = my_nestedcross_val(est_list, X, y,
                     train_transform=None, train_transform_call=None,
                     transform=None, fit_transform_call=None, transform_call=None, 
                     )
-'''                    
 print ('#\n')
 
 

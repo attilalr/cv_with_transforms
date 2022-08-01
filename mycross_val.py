@@ -58,8 +58,6 @@ def get_transformations_calls(
 
 def mycross_val_score(estimator, X, y, 
                     scoring=None,
-                    predict_method=None,
-                    column_predict_proba=None,
                     cv=5,
                     train_transform=None, train_transform_call=None,
                     transform=None, fit_transform_call=None, transform_call=None,
@@ -139,19 +137,6 @@ def mycross_val_score(estimator, X, y,
         raise ValueError(f'scoring parameter unrecognized: {scoring}')
 
 
-
-    # deal with the predict method
-    if predict_method:
-        estimator_predict = getattr(estimator, predict_method)
-    else:
-        estimator_predict = getattr(estimator, 'predict')
-        print ('Warning: predict_method not set. Set to \'predict\'.')
-        
-    # if predict_method is predict_proba lets use by default the column id 1
-    if predict_method == 'predict_proba' and column_predict_proba == None:
-        column_predict_proba = 1
-
-
     scores_obj = scores()
     #
 
@@ -178,11 +163,7 @@ def mycross_val_score(estimator, X, y,
 
         estimator.fit(X_train, y_train)
         y_true = y_test
-        #y_pred = estimator_predict(X_test)
         
-        #if column_predict_proba:
-        #    y_pred = y_pred[:, column_predict_proba]
-
         scores_obj.register(score_name, scorer(estimator.model, X_test, y_true))
 
     return np.array(scores_obj[score_name])
@@ -268,10 +249,9 @@ def my_nestedcross_val(estimator_list: List, X, y,
         #    estimator.scores.register(score, np.mean(result[score]))
 
 
-
         lst_medias_scores = list()
         for estimator, result in zip(estimator_list, results):
-            lst_medias_scores.append(np.mean(result[score]))
+            lst_medias_scores.append(np.mean(result))
         
             
             
