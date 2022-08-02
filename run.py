@@ -1,16 +1,23 @@
 import time, sys
 
-from sklearn.datasets import make_classification, make_regression
-from sklearn.model_selection import cross_val_score
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
-from imblearn.over_sampling import SMOTE 
+import numpy as np
 
-from sklearn.model_selection import KFold
+from sklearn.datasets import make_classification, make_regression
+from sklearn.model_selection import cross_val_score, KFold
+from sklearn.preprocessing import StandardScaler
+
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+
+
+from imblearn.over_sampling import SMOTE 
 
 # local modules
 from mlmodel import mlmodel
 from mycross_val import mycross_val_score, my_nestedcross_val
+
+
 
 
 ### Classification case
@@ -22,26 +29,19 @@ X, y = make_classification(n_samples=80, n_features=8,
 
 random_seed = 1
 
-
-# using the extended mlmodel class
-# the methods are passed to the estimator obj but is acessible from clf.model
 # check if the timming performance is the same as sklearn cross_val_score
 
 print ('### Checking mlmodel class')
-clf = mlmodel(RandomForestClassifier(random_state=random_seed),
-            'Random Forest Classifier - A',
-            )
-print (clf)
-print ('fit model with clf.fit')
+clf = RandomForestClassifier(random_state=random_seed)
 clf.fit(X, y)
 
-# create same cv for both
+# create same cv 
 cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
 
 
 print ('### Checking computation time when running mycross_val_score against sklearn cross_val_score')
 t = time.perf_counter()
-scores_output1 = cross_val_score(clf.model, X, y, 
+scores_output1 = cross_val_score(clf, X, y, 
                       cv=cv, 
                       scoring='accuracy',
                       n_jobs=1)
@@ -52,9 +52,10 @@ print (f'Time of cross_val_score: {time.perf_counter()-t:.2f} s.')
 # Restarting cv and RFC
 cv = KFold(n_splits=5, shuffle=True, random_state=random_seed)
 print ('### Checking mlmodel class')
-clf = mlmodel(RandomForestClassifier(random_state=random_seed),
-            'Random Forest Classifier - B',
-            )
+clf = mlmodel(
+              RandomForestClassifier(random_state=random_seed),
+              'Random Forest Classifier - B',
+              )
 clf.fit(X, y)
 
 
@@ -144,9 +145,12 @@ print ('#\n')
 
 
 # Test nested cross validation
+# using the extended mlmodel class, this class stores a string for the name/description and another object for the scores
+# the methods are passed to the estimator obj but is acessible from clf.model
+
 print ("### Test nested cross Validation")
 
-# we need to put any number of mlmodels in it
+# we need to set a list with any number of mlmodels in it
 # mlmodels are the usual models from sklearn, wrapped in a mlmodel class
 est_list = list()
 for i in range(10):
@@ -156,6 +160,29 @@ for i in range(10):
                             f'Random Forest Classifier-maxdepth-{i+1}', # and a name
                             ), 
                     )
+
+
+# lets put some SVC's
+list_gamma = np.linspace(0.04, 4, 20)
+list_C = np.linspace(0.04, 4, 20)
+
+for C, gamma in zip(list_C, list_gamma):
+    est_list.append(
+                    mlmodel(                                            # to create a mlmodel we need
+                            SVC(C=C, gamma=gamma, kernel='rbf'),      # the sklearn model
+                            f'SVC-C={C}-Gamma={gamma}', # and a name
+                            ), 
+                    )
+
+# finally, a logit
+est_list.append(
+                mlmodel(
+                        LogisticRegression(),
+                        'Logit',
+                        )
+                )
+
+
 
 
 # execute the nested cv
