@@ -187,7 +187,6 @@ est_list.append(
 
 # execute the nested cv
 list_best_models = my_nestedcross_val(est_list, X, y, 
-                    cv=5,
                     score='accuracy',
                     cv_outer=3,
                     cv_inner=5,

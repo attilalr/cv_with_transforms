@@ -171,7 +171,6 @@ def mycross_val_score(estimator, X, y,
 
 
 def my_nestedcross_val(estimator_list: List, X, y, 
-                    cv=5,
                     score='accuracy',
                     cv_outer=3,
                     cv_inner=5,
