@@ -176,7 +176,8 @@ def my_nestedcross_val(estimator_list: List, X, y,
                     cv_inner=5,
                     n_jobs=-1,
                     train_transform=None, train_transform_call=None,
-                    transform=None, fit_transform_call=None, transform_call=None, 
+                    transform=None, fit_transform_call=None, transform_call=None,
+                    show_all_scores=False, 
                     ) -> List:
     '''
     Perform a cross-validation and return a cv-outer best models list.
@@ -252,7 +253,9 @@ def my_nestedcross_val(estimator_list: List, X, y,
         for estimator, result in zip(estimator_list, results):
             lst_medias_scores.append(np.mean(result))
         
-            
+        if show_all_scores:
+            for estimator_, mean_score_ in zip(estimator_list, lst_medias_scores):
+                print (f'{estimator_.name} mean_score: {mean_score_:.2f}')
             
         name_best_model = estimator_list[np.argmax(lst_medias_scores)].name
         id_best_model = np.argmax(lst_medias_scores)

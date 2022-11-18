@@ -193,6 +193,7 @@ list_best_models = my_nestedcross_val(est_list, X, y,
                     n_jobs=2,
                     train_transform=None, train_transform_call=None,
                     transform=None, fit_transform_call=None, transform_call=None, 
+                    show_all_scores=True,
                     )
 print ('#\n')
 
