@@ -197,6 +197,9 @@ def my_nestedcross_val(estimator_list: List, X, y,
     kfold_outer = check_cv(cv=cv_outer, y=y, classifier=is_classifier(estimator_list[0]))
 
     lst_best_models = list()
+    lst_best_scores_testing = list()
+    lst_best_scores_holdout = list()
+
     for j, (train_index_outer, test_index_outer) in enumerate(kfold_outer.split(X, y)):
 
         print (f'Outer Fold {j+1} of a total {cv_outer}...')
@@ -260,8 +263,10 @@ def my_nestedcross_val(estimator_list: List, X, y,
         name_best_model = estimator_list[np.argmax(lst_medias_scores)].name
         id_best_model = np.argmax(lst_medias_scores)
         lst_best_models.append(estimator_list[np.argmax(lst_medias_scores)]) # guardar os melhores numa lista
+        lst_best_scores_testing.append(lst_medias_scores[id_best_model])
 
-        print (f'Best {score} score was {np.max(lst_medias_scores):.3f} of {name_best_model}, idx {id_best_model}')    
+        
+        print (f'Best {score} score was {lst_medias_scores[id_best_model]:.3f} of {name_best_model}, idx {id_best_model}')    
 
         clf = estimator_list[np.argmax(lst_medias_scores)].model    
         # 
@@ -270,12 +275,15 @@ def my_nestedcross_val(estimator_list: List, X, y,
         clf.fit(X_, y_)
         y_true = y_holdout
         y_pred = clf.predict(X_holdout)
+        
+        score_holdout = get_scorer(score)._score_func(y_true, y_pred)
+        lst_best_scores_holdout.append(score_holdout)
 
-        print(f'{score} of model {name_best_model} in holdout test set: {get_scorer(score)._score_func(y_true, y_pred):.3f}')
+        print(f'{score} of model {name_best_model} in holdout test set: {score_holdout:.3f}')
 
     print ()
     print (f'Best {cv_outer} models:')
-    for estimator in lst_best_models:
-        print (f'{estimator.name}')
+    for estimator, testing_score, holdout_score in zip(lst_best_models, lst_best_scores_testing, lst_best_scores_holdout):
+        print (f'{estimator.name}, testing score: {testing_score:.2f}, holdout score: {holdout_score:.2f}')
 
     return lst_best_models
