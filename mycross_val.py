@@ -178,6 +178,7 @@ def my_nestedcross_val(estimator_list: List, X, y,
                     train_transform=None, train_transform_call=None,
                     transform=None, fit_transform_call=None, transform_call=None,
                     show_all_scores=False, 
+                    hide_holdout_scores=False,
                     ) -> List:
     '''
     Perform a cross-validation and return a cv-outer best models list.
@@ -279,11 +280,18 @@ def my_nestedcross_val(estimator_list: List, X, y,
         score_holdout = get_scorer(score)._score_func(y_true, y_pred)
         lst_best_scores_holdout.append(score_holdout)
 
-        print(f'{score} of model {name_best_model} in holdout test set: {score_holdout:.3f}')
+        if not hide_holdout_scores:
+            print(f'{score} of model {name_best_model} in holdout test set: {score_holdout:.3f}')
 
     print ()
     print (f'Best {cv_outer} models:')
-    for estimator, testing_score, holdout_score in zip(lst_best_models, lst_best_scores_testing, lst_best_scores_holdout):
-        print (f'{estimator.name}, testing score: {testing_score:.2f}, holdout score: {holdout_score:.2f}')
+
+    if hide_holdout_scores:
+        for estimator, testing_score, holdout_score in zip(lst_best_models, lst_best_scores_testing, lst_best_scores_holdout):
+            print (f'{estimator.name}, testing score: {testing_score:.2f}')
+    else:
+        for estimator, testing_score, holdout_score in zip(lst_best_models, lst_best_scores_testing, lst_best_scores_holdout):
+            print (f'{estimator.name}, testing score: {testing_score:.2f}, holdout score: {holdout_score:.2f}')
+
 
     return lst_best_models

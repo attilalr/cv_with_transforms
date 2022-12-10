@@ -197,6 +197,20 @@ list_best_models = my_nestedcross_val(est_list, X, y,
                     )
 print ('#\n')
 
+# execute the nested cv showing the  option hide_holdout_scores
+# when executing several modelling tests its better to not look into the holdout 
+# scores, overfitting may happen
+list_best_models = my_nestedcross_val(est_list, X, y, 
+                    score='accuracy',
+                    cv_outer=3,
+                    cv_inner=5,
+                    n_jobs=2,
+                    train_transform=None, train_transform_call=None,
+                    transform=None, fit_transform_call=None, transform_call=None, 
+                    show_all_scores=True,
+                    hide_holdout_scores=True,
+                    )
+print ('#\n')
 
 
 
