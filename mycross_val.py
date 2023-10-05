@@ -191,6 +191,10 @@ def my_nestedcross_val(estimator_list: List, X, y,
         the training fit state. Example: standardization. Uses fit_transform and transform
         methods.
     '''
+
+    assert isinstance(X, np.ndarray), 'For now X must be a numpy array, if you are using pandas use df.values'
+    assert isinstance(y, np.ndarray), 'For now y must be a numpy array, if you are using pandas use df.values'
+                      
     assert len(estimator_list) > 0
     for estimator_ in estimator_list:
       assert isinstance(estimator_, mlmodel)
