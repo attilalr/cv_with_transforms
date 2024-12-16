@@ -172,6 +172,7 @@ def mycross_val_score(estimator, X, y,
 
 def my_nestedcross_val(estimator_list: List, X, y, 
                     score='accuracy',
+                    score_strategy_to_sort='nearest_to_zero_is_better', # higher_is_better, lower_is_better 
                     cv_outer=3,
                     cv_inner=5,
                     n_jobs=-1,
@@ -179,6 +180,7 @@ def my_nestedcross_val(estimator_list: List, X, y,
                     transform=None, fit_transform_call=None, transform_call=None,
                     show_all_scores=False, 
                     hide_holdout_scores=False,
+                    
                     ) -> List:
     '''
     Perform a cross-validation and return a cv-outer best models list.
@@ -243,6 +245,7 @@ def my_nestedcross_val(estimator_list: List, X, y,
                     mlclone(estimator),
                     X_,
                     y_,
+                    #scoring=score,
                     scoring=score,
                     cv=cv_inner,
                     train_transform=train_transform, 
@@ -263,39 +266,69 @@ def my_nestedcross_val(estimator_list: List, X, y,
         
         if show_all_scores:
             for estimator_, mean_score_ in zip(estimator_list, lst_medias_scores):
-                print (f'{estimator_.name} mean_score: {mean_score_:.2f}')
+                print (f'{estimator_.name} mean_score: {mean_score_:.3}')
             
-        name_best_model = estimator_list[np.argmax(lst_medias_scores)].name
-        id_best_model = np.argmax(lst_medias_scores)
-        lst_best_models.append(estimator_list[np.argmax(lst_medias_scores)]) # guardar os melhores numa lista
+
+
+        if score_strategy_to_sort == 'higher_is_better':
+            proper_sort_fuction = np.argmax
+
+        elif score_strategy_to_sort == 'lower_is_better':
+            proper_sort_fuction = np.argmin
+
+        elif score_strategy_to_sort == 'nearest_to_zero_is_better':
+
+            def nearest_to_zero(x):
+                return np.abs(np.array(x)-0).argmin()
+
+            proper_sort_fuction = nearest_to_zero
+
+
+
+        id_best_model = proper_sort_fuction(lst_medias_scores)
+        name_best_model = estimator_list[id_best_model].name
+
+        lst_best_models.append(estimator_list[id_best_model]) # guardar os melhores numa lista
         lst_best_scores_testing.append(lst_medias_scores[id_best_model])
 
         
-        print (f'Best {score} score was {lst_medias_scores[id_best_model]:.3f} of {name_best_model}, idx {id_best_model}')    
+        print (f'Best {score} score was {lst_medias_scores[id_best_model]:.3} of {name_best_model}, idx {id_best_model}')    
 
-        clf = estimator_list[np.argmax(lst_medias_scores)].model    
+        clf = estimator_list[id_best_model].model    
         # 
         
         # 
-        clf.fit(X_, y_)
+        if transform:
+            X_hold_train = transform.fit_transform(X_)
+            X_hold_to_pred = transform.transform(X_holdout)
+
+        else:
+
+            X_hold_train = X_
+            X_hold_to_pred = X_holdout
+
+
+        clf.fit(X_hold_train, y_)
         y_true = y_holdout
-        y_pred = clf.predict(X_holdout)
+        y_pred = clf.predict(X_hold_to_pred)
         
-        score_holdout = get_scorer(score)._score_func(y_true, y_pred)
+        #score_holdout = get_scorer(score)._score_func(y_true, y_pred)
+        #score_holdout = get_scorer(score)(clf, y_true, y_pred)
+        score_holdout = get_scorer(score)(clf, X_hold_to_pred, y_true)
         lst_best_scores_holdout.append(score_holdout)
 
         if not hide_holdout_scores:
-            print(f'{score} of model {name_best_model} in holdout test set: {score_holdout:.3f}')
+            print(f'{score} of model {name_best_model} in holdout test set: {score_holdout:.3}')
 
     print ()
     print (f'Best {cv_outer} models:')
 
     if hide_holdout_scores:
         for estimator, testing_score, holdout_score in zip(lst_best_models, lst_best_scores_testing, lst_best_scores_holdout):
-            print (f'{estimator.name}, testing score: {testing_score:.2f}')
+            print (f'{estimator.name}, testing score: {testing_score:.3}')
     else:
         for estimator, testing_score, holdout_score in zip(lst_best_models, lst_best_scores_testing, lst_best_scores_holdout):
-            print (f'{estimator.name}, testing score: {testing_score:.2f}, holdout score: {holdout_score:.2f}')
+            print (f'{estimator.name}, testing score: {testing_score:.3}, holdout score: {holdout_score:.3}')
 
 
     return lst_best_models
