@@ -17,7 +17,7 @@ from scores import scores
 
 from joblib import Parallel, logger
 from joblib import parallel_backend
-from sklearn.utils.fixes import delayed
+from sklearn.utils.parallel import delayed
 
 def get_transformations_calls(
                             train_transform=None, # the object training set exclusive (ex. SMOTE)
