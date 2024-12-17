@@ -331,4 +331,11 @@ def my_nestedcross_val(estimator_list: List, X, y,
             print (f'{estimator.name}, testing score: {testing_score:.3}, holdout score: {holdout_score:.3}')
 
 
-    return lst_best_models
+    # Lets return a tuple of ((name1, estimator1), (name2, estimator2) ... ) 
+    # for interoperability
+    lst_best_models_ = list()
+
+    for estimator in lst_best_models:
+        lst_best_models_.append((estimator.name, estimator.model))
+
+    return lst_best_models_
